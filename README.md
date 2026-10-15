@@ -1,16 +1,14 @@
-# Projeto de Programação Paralela — Relógios Vetoriais
+# Projeto Programação Paralela e Concorrente — Relógios Vetoriais
 
-Projeto desenvolvido em C para a disciplina PPC, dividido em duas etapas.
+Projeto desenvolvido em C para a disciplina de PPC.
 
-## Integrantes
-
+Integrante
 - Augusto Henrique da Silva Santana
-- Carlos Henrico Fontes Cabral
 
-## Estrutura
+Estrutura
 
 ```text
-relogios_vetoriais/
+relogios_vetoriais_PPC/
 ├── README.md
 ├── Makefile
 ├── .gitignore
@@ -24,14 +22,14 @@ relogios_vetoriais/
 
 Implementa o exemplo de relógios vetoriais com três processos MPI (`P0`, `P1` e `P2`).
 
-### Compilar
+Compilar
 
 ```bash
 cd etapa1_mpi
 mpicc -Wall -Wextra -o rvet rvet.c
 ```
 
-### Executar
+Executar
 
 ```bash
 mpiexec -n 3 ./rvet
@@ -60,14 +58,14 @@ A sincronização é feita com:
 
 Cada produtora gera relógios vetoriais e os coloca na fila. As consumidoras retiram os relógios e os imprimem.
 
-### Compilar
+Compilar
 
 ```bash
 cd etapa2_pthreads
 gcc -Wall -Wextra -pthread -o pth_produtor_consumidor pth_produtor_consumidor.c
 ```
 
-### Cenário 1 — fila cheia
+Cenário 1 — fila cheia
 
 Produtores produzem a cada 1 segundo e consumidores consomem a cada 2 segundos:
 
@@ -77,7 +75,7 @@ Produtores produzem a cada 1 segundo e consumidores consomem a cada 2 segundos:
 
 Durante o teste devem aparecer mensagens de fila cheia e produtores aguardando.
 
-### Cenário 2 — fila vazia
+Cenário 2 — fila vazia
 
 Produtores produzem a cada 2 segundos e consumidores consomem a cada 1 segundo:
 
