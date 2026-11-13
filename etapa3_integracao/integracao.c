@@ -29,7 +29,7 @@ typedef struct Clock {
 
 typedef struct QueueItem {
     Clock clock;
-    int peer;               // aqui guarda para quem vai ou de quem veio
+    int peer;               // guarda para quem vai ou de quem veio
 } QueueItem;
 
 typedef struct Queue {
@@ -121,7 +121,7 @@ static void queue_push(Queue *queue, const QueueItem *item, const char *actor) {
 // se estiver vazia espera ate alguma outra thread colocar algo
 static void queue_pop(Queue *queue, QueueItem *item, const char *actor) {
     pthread_mutex_lock(&queue->mutex);
-
+    
     while (queue->count == 0) {
         printf("[P%d][%s] FILA DE %s VAZIA. Aguardando produtor...\n",
                queue->rank, actor, queue->name);
@@ -137,16 +137,18 @@ static void queue_pop(Queue *queue, QueueItem *item, const char *actor) {
     pthread_mutex_unlock(&queue->mutex);
 }
 
-// evento normal do relogio vetorial
-// so aumenta a posicao do proprio processo
+//---- EVENTO 
+// do relogio vetorial
+// aumenta a posicao do proprio processo
 static void Event(ProcessContext *ctx) {
     ctx->local_clock.p[ctx->rank]++;
     print_clock(ctx->rank, "EVENT", &ctx->local_clock);
 }
 
-// quando a central quer enviar uma mensagem ela entra aqui
+//---- SEND 
+// envia uma mensagem
 // aumenta o proprio relogio e coloca uma copia na fila de envio
-// o MPI_Send mesmo vai ser feito depois pela thread emissora
+// o MPI_Send vai ser feito depois pela thread emissora
 static void Send(ProcessContext *ctx, int destination) {
     QueueItem item;
     char action[80];
@@ -160,6 +162,7 @@ static void Send(ProcessContext *ctx, int destination) {
     snprintf(action, sizeof(action), "SEND(%d) -> fila de envio", destination);
     print_clock(ctx->rank, action, &ctx->local_clock);
 }
+
 
 // quando a central precisa receber ela pega o proximo item da fila de recepcao
 // depois aumenta seu proprio contador e compara os dois relogios pegando os maiores valores
@@ -181,7 +184,9 @@ static void Receive(ProcessContext *ctx) {
     print_clock(ctx->rank, action, &ctx->local_clock);
 }
 
-// essa e a thread que fica recebendo mensagens dos outros processos
+
+// ---- THREAD RECEPTORA 
+// essa e a thread que fica esperando e recebendo mensagens dos outros processos
 // ela usa MPI_Recv e depois coloca o que chegou na fila de recepcao
 static void *receiver_thread(void *arg) {
     ProcessContext *ctx = (ProcessContext *)arg;
@@ -190,7 +195,7 @@ static void *receiver_thread(void *arg) {
         QueueItem item;
         MPI_Status status;
         char text[64];
-
+        //MPI_Recv recebe uma mensagem de qualquer processo
         MPI_Recv(item.clock.p, VECTOR_SIZE, MPI_INT, MPI_ANY_SOURCE,
                  CLOCK_TAG, MPI_COMM_WORLD, &status);
         item.peer = status.MPI_SOURCE;
@@ -206,6 +211,8 @@ static void *receiver_thread(void *arg) {
     return NULL;
 }
 
+
+// ---- THREAD EMISSORA 
 // essa thread fica esperando aparecer algo na fila de envio
 // quando aparece ela tira da fila e manda de verdade usando MPI_Send
 static void *sender_thread(void *arg) {
@@ -217,6 +224,7 @@ static void *sender_thread(void *arg) {
 
         queue_pop(&ctx->send_queue, &item, ROLE_SENDER);
 
+        //MPI_Send envia a mensagem para o processo destino
         MPI_Send(item.clock.p, VECTOR_SIZE, MPI_INT, item.peer,
                  CLOCK_TAG, MPI_COMM_WORLD);
 
@@ -267,7 +275,8 @@ static void *central_thread(void *arg) {
     return NULL;
 }
 
-// main: inicia o MPI, monta as filas, cria as 3 threads e espera tudo terminar
+// ---- MAIN
+// inicia o MPI, monta as filas, cria as 3 threads e espera tudo terminar
 int main(int argc, char **argv) {
     int rank;
     int comm_size;
@@ -321,6 +330,7 @@ int main(int argc, char **argv) {
     pthread_t central;
     pthread_t sender;
 
+    // CRIA AS THREADS
     // cria primeiro as threads que recebem, enviam e controlam o relogio
     if (pthread_create(&receiver, NULL, receiver_thread, &ctx) != 0 ||
         pthread_create(&sender, NULL, sender_thread, &ctx) != 0 ||
